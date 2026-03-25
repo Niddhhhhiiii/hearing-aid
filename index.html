@@ -7,8 +7,8 @@
 <style>
 
 body{
-font-family: 'Segoe UI', sans-serif;
-background: linear-gradient(135deg,hsl(219, 43%, 64%),#f5f7fa);
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#8ea6d9,#f5f7fa);
 text-align:center;
 padding-top:30px;
 }
@@ -20,11 +20,6 @@ margin:auto;
 padding:25px;
 border-radius:16px;
 box-shadow:0 10px 25px rgba(0,0,0,0.15);
-}
-
-h2{
-margin-bottom:20px;
-letter-spacing:0.5px;
 }
 
 .section{
@@ -47,11 +42,10 @@ button{
 padding:10px 16px;
 border:none;
 border-radius:8px;
-background:hsl(127, 5%, 33%);
+background:#555;
 color:white;
 cursor:pointer;
 margin:4px;
-font-size:14px;
 }
 
 button:hover{
@@ -64,7 +58,13 @@ padding:15px;
 background:#f7f7f7;
 border-radius:10px;
 min-height:70px;
+font-size:16px;
+}
+
+.translation{
+margin-top:10px;
 font-size:15px;
+color:#333;
 }
 
 .battery-container{
@@ -93,7 +93,7 @@ width:75%;
 <!-- BATTERY -->
 <div class="section">
 
-<label><b>Battery Status</b></label>
+<b>Battery Status</b>
 
 <div class="battery-container">
 <div id="batteryBar" class="battery-bar"></div>
@@ -105,10 +105,23 @@ Battery: <span id="batteryPercent">75</span>%
 
 </div>
 
+<!-- LANGUAGE -->
+<div class="section">
+
+<b>Language Mode</b><br>
+
+<select id="languageSelect">
+<option value="auto">Auto Detect</option>
+<option value="en-US">English</option>
+<option value="ml-IN">Malayalam</option>
+</select>
+
+</div>
+
 <!-- MODE -->
 <div class="section">
 
-<label><b>Listening Mode</b></label><br>
+<b>Listening Mode</b><br>
 
 <select onchange="updateMode(this.value)">
 <option value="Quiet Mode">Quiet Mode</option>
@@ -124,12 +137,9 @@ Current: <span id="mode">Quiet Mode</span>
 <!-- VOLUME -->
 <div class="section">
 
-<label><b>Volume Control</b></label><br>
+<b>Volume Control</b><br>
 
-<input type="range"
-min="1"
-max="6"
-value="3"
+<input type="range" min="1" max="6" value="3"
 oninput="updateVolume(this.value)">
 
 <div class="status">
@@ -141,7 +151,7 @@ Gain: <span id="volume">3</span>
 <!-- TRANSCRIPTION -->
 <div class="section">
 
-<label><b>Live Transcription</b></label><br><br>
+<b>Live Transcription</b><br><br>
 
 <button onclick="startRecognition()">Start Listening</button>
 <button onclick="stopRecognition()">Stop</button>
@@ -149,6 +159,8 @@ Gain: <span id="volume">3</span>
 <div class="transcription-box" id="output">
 Speech will appear here...
 </div>
+
+<div class="translation" id="translation"></div>
 
 </div>
 
@@ -176,20 +188,33 @@ return;
 }
 
 recognition=new SpeechRecognition();
-recognition.lang="en-US";
+
+let selectedLang=document.getElementById("languageSelect").value;
+
+if(selectedLang==="auto"){
+recognition.lang="ml-IN";
+}else{
+recognition.lang=selectedLang;
+}
+
 recognition.continuous=true;
+recognition.interimResults=true;
 
 recognition.onresult=function(event){
 
 let transcript="";
 
 for(let i=event.resultIndex;i<event.results.length;i++){
-
 transcript+=event.results[i][0].transcript;
-
 }
 
 document.getElementById("output").innerText=transcript;
+
+if(containsMalayalam(transcript)){
+translateText(transcript);
+}else{
+document.getElementById("translation").innerText="";
+}
 
 };
 
@@ -198,9 +223,38 @@ recognition.start();
 }
 
 function stopRecognition(){
-
 if(recognition){
 recognition.stop();
+}
+}
+
+function containsMalayalam(text){
+return /[\u0D00-\u0D7F]/.test(text);
+}
+
+async function translateText(text){
+
+try{
+
+let response=await fetch("https://libretranslate.de/translate",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+q:text,
+source:"ml",
+target:"en",
+format:"text"
+})
+});
+
+let data=await response.json();
+
+document.getElementById("translation").innerText="English: "+data.translatedText;
+
+}catch(e){
+document.getElementById("translation").innerText="Translation unavailable";
 }
 
 }
@@ -212,13 +266,10 @@ function updateBattery(){
 batteryLevel--;
 
 if(batteryLevel<20){
-
 document.getElementById("batteryBar").style.background="red";
-
 }
 
 document.getElementById("batteryPercent").innerText=batteryLevel;
-
 document.getElementById("batteryBar").style.width=batteryLevel+"%";
 
 if(batteryLevel<=0){
