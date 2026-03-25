@@ -1,45 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Smart Hearing Aid</title>
 
 <style>
 
 body{
-font-family:'Segoe UI',sans-serif;
-background:linear-gradient(135deg,#8ea6d9,#f5f7fa);
+font-family: 'Segoe UI', sans-serif;
+background: linear-gradient(135deg,hsl(219, 43%, 64%),#f5f7fa);
 text-align:center;
 padding-top:30px;
 }
 
 .container{
 background:white;
-width:90%;
-max-width:420px;
+width:380px;
 margin:auto;
 padding:25px;
-border-radius:20px;
+border-radius:16px;
 box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
+
+h2{
+margin-bottom:20px;
+letter-spacing:0.5px;
 }
 
 .section{
 margin:22px 0;
 }
 
+select,input[type="range"]{
+width:80%;
+padding:8px;
+margin-top:10px;
+}
+
+.status{
+font-size:14px;
+color:#555;
+margin-top:6px;
+}
+
 button{
-padding:14px;
+padding:10px 16px;
 border:none;
-border-radius:12px;
-background:#444;
+border-radius:8px;
+background:hsl(127, 5%, 33%);
 color:white;
 cursor:pointer;
-margin:6px;
-font-size:16px;
-width:85%;
+margin:4px;
+font-size:14px;
 }
 
 button:hover{
@@ -48,21 +61,27 @@ background:#43a047;
 
 .transcription-box{
 margin-top:15px;
-padding:18px;
+padding:15px;
 background:#f7f7f7;
 border-radius:10px;
-min-height:60px;
-font-size:20px;
-font-weight:500;
+min-height:70px;
+font-size:22px;
+font-weight:600;
+line-height:1.4;
 }
 
-.translation-box{
-margin-top:10px;
-padding:15px;
-background:#eef2ff;
+.battery-container{
+width:80%;
+margin:auto;
+background:#ddd;
 border-radius:10px;
-min-height:50px;
-font-size:18px;
+}
+
+.battery-bar{
+height:15px;
+background:#4CAF50;
+border-radius:10px;
+width:75%;
 }
 
 </style>
@@ -75,25 +94,66 @@ font-size:18px;
 <h2>Smart Hearing Aid</h2>
 
 <div class="section">
+<label><b>Battery Status</b></label>
 
-<b>Live Speech</b><br><br>
+<div class="battery-container">
+<div id="batteryBar" class="battery-bar"></div>
+</div>
+
+<div class="status">
+Battery: <span id="batteryPercent">75</span>%
+</div>
+</div>
+
+<div class="section">
+<label><b>Listening Mode</b></label><br>
+
+<select onchange="updateMode(this.value)">
+<option value="Quiet Mode">Quiet Mode</option>
+<option value="Noisy Mode">Noisy Mode</option>
+</select>
+
+<div class="status">
+Current: <span id="mode">Quiet Mode</span>
+</div>
+</div>
+
+<div class="section">
+<label><b>Volume Control</b></label><br>
+
+<input type="range"
+min="1"
+max="6"
+value="3"
+oninput="updateVolume(this.value)">
+
+<div class="status">
+Gain: <span id="volume">3</span>
+</div>
+</div>
+
+<div class="section">
+<label><b>Live Transcription</b></label><br><br>
 
 <button onclick="startRecognition()">Start Listening</button>
 <button onclick="stopRecognition()">Stop</button>
 
-<div class="transcription-box" id="manglish">
-Manglish text appears here
+<div class="transcription-box" id="output">
+Speech will appear here...
 </div>
-
-<div class="translation-box" id="english">
-English translation appears here
-</div>
-
 </div>
 
 </div>
 
 <script>
+
+function updateVolume(val){
+document.getElementById("volume").innerText=val;
+}
+
+function updateMode(val){
+document.getElementById("mode").innerText=val;
+}
 
 let recognition;
 
@@ -102,27 +162,28 @@ function startRecognition(){
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if(!SpeechRecognition){
-alert("Speech recognition not supported.");
+alert("Use Google Chrome or Safari for this feature.");
 return;
 }
 
 recognition = new SpeechRecognition();
 
+/* English model so Malayalam speech becomes Manglish */
 recognition.lang = "en-US";
+
 recognition.continuous = true;
 recognition.interimResults = true;
+recognition.maxAlternatives = 1;
 
 recognition.onresult = function(event){
 
 let transcript = "";
 
 for(let i = event.resultIndex; i < event.results.length; i++){
-transcript += event.results[i][0].transcript;
+transcript += event.results[i][0].transcript + " ";
 }
 
-document.getElementById("manglish").innerText = transcript;
-
-translateText(transcript);
+document.getElementById("output").innerText = transcript;
 
 };
 
@@ -131,41 +192,31 @@ recognition.start();
 }
 
 function stopRecognition(){
-
 if(recognition){
 recognition.stop();
 }
-
 }
 
-async function translateText(text){
+let batteryLevel = 75;
 
-try{
+function updateBattery(){
 
-let response = await fetch("https://libretranslate.de/translate",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-q:text,
-source:"auto",
-target:"en",
-format:"text"
-})
-});
+batteryLevel--;
 
-let data = await response.json();
+if(batteryLevel < 20){
+document.getElementById("batteryBar").style.background = "red";
+}
 
-document.getElementById("english").innerText = data.translatedText;
+document.getElementById("batteryPercent").innerText = batteryLevel;
+document.getElementById("batteryBar").style.width = batteryLevel + "%";
 
-}catch(error){
-
-document.getElementById("english").innerText="Translation unavailable";
-
+if(batteryLevel <= 0){
+batteryLevel = 100;
 }
 
 }
+
+setInterval(updateBattery,5000);
 
 </script>
 
