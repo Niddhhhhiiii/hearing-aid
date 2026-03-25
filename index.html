@@ -1,31 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>Smart Hearing Aid</title>
 
 <style>
 
 body{
-font-family: 'Segoe UI', sans-serif;
-background: linear-gradient(135deg,hsl(219, 43%, 64%),#f5f7fa);
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#8ea6d9,#f5f7fa);
 text-align:center;
 padding-top:30px;
 }
 
 .container{
 background:white;
-width:380px;
+width:90%;
+max-width:420px;
 margin:auto;
 padding:25px;
-border-radius:16px;
+border-radius:20px;
 box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
 
 h2{
 margin-bottom:20px;
-letter-spacing:0.5px;
 }
 
 .section{
@@ -33,8 +35,8 @@ margin:22px 0;
 }
 
 select,input[type="range"]{
-width:80%;
-padding:8px;
+width:85%;
+padding:10px;
 margin-top:10px;
 }
 
@@ -45,14 +47,15 @@ margin-top:6px;
 }
 
 button{
-padding:10px 16px;
+padding:14px;
 border:none;
-border-radius:8px;
-background:hsl(127, 5%, 33%);
+border-radius:12px;
+background:#444;
 color:white;
 cursor:pointer;
-margin:4px;
-font-size:14px;
+margin:6px;
+font-size:16px;
+width:85%;
 }
 
 button:hover{
@@ -61,17 +64,16 @@ background:#43a047;
 
 .transcription-box{
 margin-top:15px;
-padding:15px;
+padding:18px;
 background:#f7f7f7;
 border-radius:10px;
-min-height:70px;
-font-size:22px;
-font-weight:600;
-line-height:1.4;
+min-height:80px;
+font-size:20px;
+font-weight:500;
 }
 
 .battery-container{
-width:80%;
+width:85%;
 margin:auto;
 background:#ddd;
 border-radius:10px;
@@ -94,7 +96,8 @@ width:75%;
 <h2>Smart Hearing Aid</h2>
 
 <div class="section">
-<label><b>Battery Status</b></label>
+
+<b>Battery Status</b>
 
 <div class="battery-container">
 <div id="batteryBar" class="battery-bar"></div>
@@ -103,10 +106,23 @@ width:75%;
 <div class="status">
 Battery: <span id="batteryPercent">75</span>%
 </div>
+
 </div>
 
 <div class="section">
-<label><b>Listening Mode</b></label><br>
+
+<b>Language</b><br>
+
+<select id="languageSelect">
+<option value="en-US">English</option>
+<option value="ml-IN">Malayalam</option>
+</select>
+
+</div>
+
+<div class="section">
+
+<b>Listening Mode</b><br>
 
 <select onchange="updateMode(this.value)">
 <option value="Quiet Mode">Quiet Mode</option>
@@ -116,10 +132,12 @@ Battery: <span id="batteryPercent">75</span>%
 <div class="status">
 Current: <span id="mode">Quiet Mode</span>
 </div>
+
 </div>
 
 <div class="section">
-<label><b>Volume Control</b></label><br>
+
+<b>Volume Control</b><br>
 
 <input type="range"
 min="1"
@@ -130,17 +148,20 @@ oninput="updateVolume(this.value)">
 <div class="status">
 Gain: <span id="volume">3</span>
 </div>
+
 </div>
 
 <div class="section">
-<label><b>Live Transcription</b></label><br><br>
+
+<b>Live Transcription</b><br><br>
 
 <button onclick="startRecognition()">Start Listening</button>
-<button onclick="stopRecognition()">Stop</button>
+<button onclick="stopRecognition()">Stop Listening</button>
 
 <div class="transcription-box" id="output">
 Speech will appear here...
 </div>
+
 </div>
 
 </div>
@@ -162,25 +183,25 @@ function startRecognition(){
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if(!SpeechRecognition){
-alert("Use Google Chrome or Safari for this feature.");
+alert("Use Google Chrome for speech recognition.");
 return;
 }
 
 recognition = new SpeechRecognition();
 
-/* English model so Malayalam speech becomes Manglish */
-recognition.lang = "en-US";
+let selectedLang = document.getElementById("languageSelect").value;
+
+recognition.lang = selectedLang;
 
 recognition.continuous = true;
 recognition.interimResults = true;
-recognition.maxAlternatives = 1;
 
 recognition.onresult = function(event){
 
 let transcript = "";
 
 for(let i = event.resultIndex; i < event.results.length; i++){
-transcript += event.results[i][0].transcript + " ";
+transcript += event.results[i][0].transcript;
 }
 
 document.getElementById("output").innerText = transcript;
@@ -192,9 +213,11 @@ recognition.start();
 }
 
 function stopRecognition(){
+
 if(recognition){
 recognition.stop();
 }
+
 }
 
 let batteryLevel = 75;
@@ -204,7 +227,7 @@ function updateBattery(){
 batteryLevel--;
 
 if(batteryLevel < 20){
-document.getElementById("batteryBar").style.background = "red";
+document.getElementById("batteryBar").style.background="red";
 }
 
 document.getElementById("batteryPercent").innerText = batteryLevel;
